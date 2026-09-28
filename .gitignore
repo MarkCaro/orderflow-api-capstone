@@ -4,3 +4,8 @@ coverage/
 *.log
 .DS_Store
 dist/
+
+# exercise files
+SPEC.md
+PROCESS.md
+REVIEW.md

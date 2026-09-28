@@ -22,6 +22,11 @@ async function findAll({ category, activeOnly = true } = {}) {
   return rows;
 }
 
+async function count() {
+  // TODO(red phase): stub only — replace with a real COUNT(*) query in the green phase.
+  return 0;
+}
+
 async function findById(id) {
   const { rows } = await db.query("SELECT * FROM products WHERE id = $1", [id]);
   return rows[0] || null;
@@ -45,4 +50,4 @@ async function updateStock(productId, quantityDelta) {
   return rows[0] || null;
 }
 
-module.exports = { findAll, findById, findBySku, updateStock };
+module.exports = { findAll, count, findById, findBySku, updateStock };

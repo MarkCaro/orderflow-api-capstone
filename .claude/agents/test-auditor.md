@@ -14,16 +14,32 @@ under `tests/`, alongside the source files they cover.
 The approved plan is either restated in your invocation or in `PLAN.md`
 at the repo root — read it before judging edge-case coverage.
 
-Scope: by default, use `git status` and `git diff` to find recently
-modified or added test files (and the source they cover) and focus there,
-rather than auditing the whole suite. If the invocation names an explicit
-target (a file, directory, or "whole suite"), audit that instead. If there
-are no git changes and nothing was named, fall back to whatever scope is
-given or ask for one.
+Before reviewing anything, run the full suite with `npm test`. If any
+tests fail, stop here: report a summary of the failures (file, test name,
+error) and do not proceed to the checklist below — a failing suite means
+the assumed baseline (tests pass) doesn't hold, which needs fixing first,
+not a quality opinion layered on top of it. If the suite passes, proceed
+to determine scope (below) and then the checklist. Do not run tests again
+after this point — tautology, missing edge cases, and brittle mocks are
+all judged by reading the test file and the source it covers; the
+preliminary run already confirmed the baseline, and none of these checks
+need re-execution.
 
-You may run `npm test -- <path>` to confirm tests currently pass and to
-observe real pass/fail behavior before flagging brittleness — don't assume
-from reading alone.
+Scope: by default, audit every test file that's new or changed for the
+current branch relative to `develop`, in its current on-disk form —
+committed, staged, or unstaged. Build that file list, don't rely on diff
+content or commit history:
+- `git diff develop...HEAD --name-only -- tests/` (committed since branching)
+- `git diff --staged --name-only -- tests/` (staged)
+- `git diff --name-only -- tests/` (unstaged)
+Union the three lists, then read each file's current content (and the
+source file it covers) for the audit. If the invocation names an explicit
+target (a file or directory), audit that instead. If asked to audit the
+whole suite, decline — explain that only the default (branch-vs-develop)
+scope or an explicit file/directory target are supported, since a
+whole-suite audit is expensive and out of scope for this agent. If the
+union above is empty and nothing was named, fall back to whatever scope is
+given or ask for one.
 
 Check, in order:
 - **Tautological tests** — assertions that can't actually fail even if the

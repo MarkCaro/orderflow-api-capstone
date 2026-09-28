@@ -27,13 +27,15 @@ function buildApp() {
   return app;
 }
 
+// The route always calls Product.findAll before Product.count (Promise.all
+// evaluates its array left-to-right), so db.query's calls are deterministically
+// ordered: row query first, count query second — regardless of either query's
+// SQL text.
 function mockDb({ rows = [], total = rows.length } = {}) {
-  db.query.mockImplementation((sql) => {
-    if (sql.includes("COUNT(*)")) {
-      return Promise.resolve({ rows: [{ count: String(total) }] });
-    }
-    return Promise.resolve({ rows });
-  });
+  db.query.mockImplementationOnce(() => Promise.resolve({ rows }));
+  db.query.mockImplementationOnce(() =>
+    Promise.resolve({ rows: [{ count: String(total) }] })
+  );
 }
 
 describe("GET /api/products", () => {
@@ -56,8 +58,6 @@ describe("GET /api/products", () => {
     });
 
     it("returns 400 when category is provided more than once (parsed as an array)", async () => {
-      mockDb({ rows: [] });
-
       const res = await request(app).get(
         "/api/products?category[]=a&category[]=b"
       );
@@ -66,7 +66,6 @@ describe("GET /api/products", () => {
     });
 
     it("returns 400 when category exceeds 100 characters", async () => {
-      mockDb({ rows: [] });
       const longCategory = "a".repeat(101);
 
       const res = await request(app).get(
@@ -143,14 +142,12 @@ describe("GET /api/products", () => {
     it("reflects requested limit/offset and passes them through to the model query", async () => {
       mockDb({ rows: [{ id: 3 }], total: 5 });
 
-      const res = await request(app).get("/api/products?limit=2&offset=2");
+      const res = await request(app).get("/api/products?limit=2&offset=7");
 
       expect(res.body.pagination.limit).toBe(2);
-      expect(res.body.pagination.offset).toBe(2);
-      const rowCall = db.query.mock.calls.find(
-        ([sql]) => !sql.includes("COUNT(*)")
-      );
-      expect(rowCall[1]).toEqual(expect.arrayContaining([2, 2]));
+      expect(res.body.pagination.offset).toBe(7);
+      const rowCall = db.query.mock.calls[0];
+      expect(rowCall[1]).toEqual([true, 2, 7]);
     });
 
     it("computes total/totalPages from the filtered count, not the unfiltered total", async () => {
@@ -162,11 +159,9 @@ describe("GET /api/products", () => {
 
       expect(res.body.pagination.total).toBe(3);
       expect(res.body.pagination.totalPages).toBe(1);
-      const countCall = db.query.mock.calls.find(([sql]) =>
-        sql.includes("COUNT(*)")
-      );
-      expect(countCall[0]).toContain("category = $1");
-      expect(countCall[1]).toEqual(["widgets"]);
+      const countCall = db.query.mock.calls[1];
+      expect(countCall[0]).toContain("category = $2");
+      expect(countCall[1]).toEqual([true, "widgets"]);
     });
   });
 
@@ -205,9 +200,7 @@ describe("GET /api/products", () => {
       const res = await request(app).get("/api/products?category=");
 
       expect(res.status).toBe(200);
-      const rowCall = db.query.mock.calls.find(
-        ([sql]) => !sql.includes("COUNT(*)")
-      );
+      const rowCall = db.query.mock.calls[0];
       expect(rowCall[0]).not.toContain("category =");
     });
   });

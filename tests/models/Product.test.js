@@ -53,7 +53,7 @@ describe("Product model — pagination", () => {
 
       const [sql, params] = db.query.mock.calls[0];
       expect(sql.indexOf("WHERE")).toBeLessThan(sql.indexOf("LIMIT"));
-      expect(params).toEqual(["widgets", 10, 5]);
+      expect(params).toEqual([true, "widgets", 10, 5]);
     });
   });
 
@@ -69,7 +69,7 @@ describe("Product model — pagination", () => {
       const [sql, params] = db.query.mock.calls[0];
       expect(sql).toContain("LIMIT $");
       expect(sql).toContain("OFFSET $");
-      expect(params).toEqual(expect.arrayContaining([20, 40]));
+      expect(params).toEqual([true, 20, 40]);
       expect(result).toEqual(rows);
     });
 
@@ -81,8 +81,8 @@ describe("Product model — pagination", () => {
       const [sql, params] = db.query.mock.calls[0];
       expect(sql).toMatch(/SELECT COUNT\(\*\)/);
       expect(sql).toContain("WHERE");
-      expect(sql).toContain("category = $1");
-      expect(params).toEqual(["widgets"]);
+      expect(sql).toContain("category = $2");
+      expect(params).toEqual([true, "widgets"]);
       expect(total).toBe(7);
       expect(typeof total).toBe("number");
     });
